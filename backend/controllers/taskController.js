@@ -1,3 +1,6 @@
+const Task = require("../models/Task"); // Assurez-vous d'avoir un modèle Task
+const { getIoInstance } = require("../sockets/socketInstance"); // Importer getIoInstance
+
 // Récupérer toutes les tâches
 exports.getTasks = async (req, res) => {
   try {
@@ -17,7 +20,10 @@ exports.addTask = async (req, res) => {
     res.status(201).json(newTask);
 
     // Émettre un événement WebSocket après avoir ajouté la tâche
-    io.emit('task:added', newTask);
+    const io = getIoInstance();
+    if (io) {
+      io.emit('task:added', newTask);
+    }
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
   }
@@ -31,7 +37,10 @@ exports.updateTask = async (req, res) => {
     res.json(updatedTask);
 
     // Émettre un événement WebSocket après avoir mis à jour la tâche
-    io.emit('task:updated', updatedTask);
+    const io = getIoInstance();
+    if (io) {
+      io.emit('task:updated', updatedTask);
+    }
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
   }
@@ -45,7 +54,10 @@ exports.deleteTask = async (req, res) => {
     res.json({ message: "Tâche supprimée" });
 
     // Émettre un événement WebSocket après avoir supprimé la tâche
-    io.emit('task:deleted', id);
+    const io = getIoInstance();
+    if (io) {
+      io.emit('task:deleted', id);
+    }
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur" });
   }

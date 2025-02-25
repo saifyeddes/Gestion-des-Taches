@@ -3,16 +3,16 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const http = require("http");
-const socketIo = require("socket.io");
+const { Server } = require("socket.io");
+const { setIoInstance } = require("./sockets/socketInstance");
 
 dotenv.config();
 const app = express();
-const server = http.createServer(app); // Créer un serveur HTTP avec Express
-const io = socketIo(server); // Lier Socket.IO au serveur
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
 
-// Middleware
-app.use(express.json()); // Parser les requêtes JSON
-app.use(cors()); // Configurer CORS
+app.use(express.json());
+app.use(cors());
 
 // Connexion à MongoDB
 mongoose
@@ -28,34 +28,17 @@ app.use("/api/auth/signup", require("./routes/auth/signup"));
 app.use("/api/auth/login", require("./routes/auth/login"));
 app.use("/api/tasks", require("./routes/tasks/taskRoutes"));
 
-
-require("./sockets/taskSocket")(io);
-
-
 // WebSocket
-io.on('connection', (socket) => {
-  console.log('Un utilisateur est connecté au WebSocket');
+io.on("connection", (socket) => {
+  console.log("🟢 Un utilisateur s'est connecté au WebSocket");
 
-  socket.on('task:add', (task) => {
-    console.log('Tâche ajoutée:', task); // Log de la tâche ajoutée
-    io.emit('task:added', task); // Émission de l'événement task:added
-  });
+  // Définir l'instance de Socket.IO
+  setIoInstance(io);
 
-  socket.on('task:update', (task) => {
-    console.log('Tâche mise à jour:', task); // Log de la tâche mise à jour
-    io.emit('task:updated', task); // Émission de l'événement task:updated
-  });
-
-  socket.on('task:delete', (taskId) => {
-    console.log('Tâche supprimée:', taskId); // Log de la tâche supprimée
-    io.emit('task:deleted', taskId); // Émission de l'événement task:deleted
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Un utilisateur a été déconnecté du WebSocket');
+  socket.on("disconnect", () => {
+    console.log("🔴 Un utilisateur s'est déconnecté");
   });
 });
-
 
 // Démarrage du serveur
 const PORT = process.env.PORT || 5001;

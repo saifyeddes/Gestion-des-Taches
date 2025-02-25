@@ -1,85 +1,80 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useSocket } from '../../utils/socket'; // Remarquez les deux points pour remonter à la racine
+import { io } from 'socket.io-client';
+
+const socket = io("http://localhost:5001"); // Assurez-vous que l'URL correspond à votre serveur
 
 const Dashboard = () => {
     const [tasks, setTasks] = useState([]);
-    const [newTask, setNewTask] = useState('');
-    const socket = useSocket();
+    const [taskTitle, setTaskTitle] = useState("");
 
-    useEffect(() => {
-        const fetchTasks = async () => {
-            try {
-                const res = await axios.get('http://localhost:5001/api/tasks');
-                setTasks(res.data);
-            } catch (error) {
-                console.error('Erreur lors de la récupération des tâches:', error);
-            }
-        };
-        fetchTasks();
-
-        if (socket) {
-            socket.on('task:added', (task) => {
-                setTasks((prevTasks) => [...prevTasks, task]);
-            });
-
-            socket.on('task:updated', (updatedTask) => {
-                setTasks((prevTasks) =>
-                    prevTasks.map((task) =>
-                        task._id === updatedTask._id ? updatedTask : task
-                    )
-                );
-            });
-
-            socket.on('task:deleted', (taskId) => {
-                setTasks((prevTasks) => prevTasks.filter((task) => task._id !== taskId));
-            });
-        }
-
-        return () => {
-            if (socket) {
-                socket.off('task:added');
-                socket.off('task:updated');
-                socket.off('task:deleted');
-            }
-        };
-    }, [socket]);
-
-    const handleAddTask = async () => {
+    // Récupérer toutes les tâches
+    const fetchTasks = async () => {
         try {
-            const res = await axios.post('http://localhost:5001/api/tasks', { title: newTask });
-            socket.emit('task:add', res.data);
-            setNewTask('');
+            const res = await axios.get('http://localhost:5001/api/tasks');
+            setTasks(res.data);
         } catch (error) {
-            console.error('Erreur lors de l\'ajout de la tâche:', error);
+            console.error('Erreur lors de la récupération des tâches:', error);
         }
     };
 
-    const handleDeleteTask = async (taskId) => {
-        try {
-            await axios.delete(`http://localhost:5001/api/tasks/${taskId}`);
-            socket.emit('task:delete', taskId);
-        } catch (error) {
-            console.error('Erreur lors de la suppression de la tâche:', error);
+    useEffect(() => {
+        fetchTasks();
+
+        // Écouter les événements WebSocket
+        socket.on('task:added', (newTask) => {
+            setTasks((prevTasks) => [...prevTasks, newTask]);
+        });
+
+        socket.on('task:updated', (updatedTask) => {
+            setTasks((prevTasks) =>
+                prevTasks.map((task) =>
+                    task._id === updatedTask._id ? updatedTask : task
+                )
+            );
+        });
+
+        socket.on('task:deleted', (taskId) => {
+            setTasks((prevTasks) => prevTasks.filter((task) => task._id !== taskId));
+        });
+
+        return () => {
+            socket.off('task:added');
+            socket.off('task:updated');
+            socket.off('task:deleted');
+        };
+    }, []);
+
+    // Ajouter une nouvelle tâche
+    const addTask = async () => {
+        if (taskTitle) {
+            try {
+                const res = await axios.post('http://localhost:5001/api/tasks', { title: taskTitle });
+                setTaskTitle(""); // Réinitialiser le champ de titre
+            } catch (error) {
+                console.error('Erreur lors de l\'ajout de la tâche:', error);
+            }
         }
     };
 
     return (
         <div>
             <h1>Dashboard</h1>
+            <h2>Nouvelle tâche</h2>
             <input
                 type="text"
-                value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
-                placeholder="Nouvelle tâche"
+                value={taskTitle}
+                onChange={(e) => setTaskTitle(e.target.value)}
+                placeholder="Titre de la tâche"
             />
-            <button onClick={handleAddTask}>Ajouter tâche</button>
+            <button onClick={addTask}>Ajouter tâche</button>
 
+            <h2>Tâches</h2>
             <ul>
                 {tasks.map((task) => (
                     <li key={task._id}>
-                        {task.title} 
-                        <button onClick={() => handleDeleteTask(task._id)}>Supprimer</button>
+                        {task.title} - {task.status}
+                        {/* Ajoutez des boutons pour mettre à jour et supprimer ici */}
                     </li>
                 ))}
             </ul>
