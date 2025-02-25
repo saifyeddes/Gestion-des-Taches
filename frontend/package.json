@@ -9,6 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.0.8",
     "axios": "^1.7.9",
     "next": "^15.1.7",
     "react": "^19.0.0",

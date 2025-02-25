@@ -11,7 +11,6 @@ export default function LoginForm() {
     try {
       const res = await axios.post("/auth/login", { email, password });
 
-      // Sauvegarde du token dans le localStorage
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
